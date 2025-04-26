@@ -64,7 +64,7 @@ export default function WelcomeScreen() {
           </View>
         </View>
         
-        {/* Login Button */}
+        {/* Coninue Button */}
         <TouchableOpacity
           style={styles.loginButton}
           onPress={() => router.push('/choice')}
