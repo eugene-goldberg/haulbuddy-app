@@ -1,74 +1,166 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+// app/(tabs)/index.tsx
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 
-export default function HomeScreen() {
+export default function WelcomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <ScrollView style={styles.scrollView}>
+      <View style={styles.container}>
+        {/* Header */}
+        <Text style={styles.title}>Pickup Truck Sharing Made Easy</Text>
+        
+        {/* Truck Icon/Image */}
+        <View style={styles.iconContainer}>
+          <FontAwesome5 name="truck" size={80} color="#e74c3c" />
+        </View>
+        
+        {/* Description */}
+        <Text style={styles.description}>
+          Connect with truck owners in your area for moving, hauling, and delivery needs.
+        </Text>
+        
+        {/* How It Works Section */}
+        <Text style={styles.sectionTitle}>How It Works</Text>
+        
+        {/* Step 1 */}
+        <View style={styles.stepContainer}>
+          <View style={styles.stepIconContainer}>
+            <Ionicons name="phone-portrait" size={50} color="#333" />
+          </View>
+          <View style={styles.stepTextContainer}>
+            <Text style={styles.stepTitle}>Book a Truck</Text>
+            <Text style={styles.stepDescription}>
+              Find available trucks in your area and book with just a few taps
+            </Text>
+          </View>
+        </View>
+        
+        {/* Step 2 */}
+        <View style={styles.stepContainer}>
+          <View style={styles.stepIconContainer}>
+            <FontAwesome5 name="truck" size={40} color="#e74c3c" />
+          </View>
+          <View style={styles.stepTextContainer}>
+            <Text style={styles.stepTitle}>Meet Your Driver</Text>
+            <Text style={styles.stepDescription}>
+              Connect with verified truck owners for your moving needs
+            </Text>
+          </View>
+        </View>
+        
+        {/* Step 3 */}
+        <View style={styles.stepContainer}>
+          <View style={styles.stepIconContainer}>
+            <Ionicons name="checkmark-circle" size={50} color="#4CAF50" />
+          </View>
+          <View style={styles.stepTextContainer}>
+            <Text style={styles.stepTitle}>Complete Your Move</Text>
+            <Text style={styles.stepDescription}>
+              Get your items moved safely and affordably
+            </Text>
+          </View>
+        </View>
+        
+        {/* Login Button */}
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => router.push('/choice')}
+        >
+          <Text style={styles.loginButtonText}>Coninue</Text>
+        </TouchableOpacity>
+        
+        {/* Spacer at bottom for scrolling */}
+        <View style={{height: 40}} />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  container: {
+    flex: 1,
     alignItems: 'center',
-    gap: 8,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#555',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  iconContainer: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(140, 210, 245, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  description: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 40,
+    paddingHorizontal: 20,
+    lineHeight: 24,
+  },
+  sectionTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    alignSelf: 'flex-start',
+    marginBottom: 30,
   },
   stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+    flexDirection: 'row',
+    width: '100%',
+    marginBottom: 30,
+    alignItems: 'center',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  stepIconContainer: {
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepTextContainer: {
+    flex: 1,
+    paddingLeft: 15,
+  },
+  stepTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  stepDescription: {
+    fontSize: 16,
+    color: '#666',
+    lineHeight: 22,
+  },
+  loginButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 4,
+    marginTop: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  loginButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
