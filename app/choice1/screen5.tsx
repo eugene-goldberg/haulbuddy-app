@@ -41,8 +41,8 @@ export default function Choice1Screen5() {
   };
 
   const trackBooking = () => {
-    // In a real app, this would navigate to a tracking screen
-    alert('Booking tracking would open here');
+    // Navigate to the tracking screen
+    router.push('/choice1/tracking');
   };
 
   return (
