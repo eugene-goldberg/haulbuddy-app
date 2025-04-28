@@ -135,7 +135,7 @@ export default function JobsScreen() {
   
   const navigateToEarnings = () => {
     // Navigate to earnings screen
-    console.log('Navigate to earnings');
+    router.push('/owner-dashboard/earnings');
   };
   
   const navigateToProfile = () => {

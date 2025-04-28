@@ -47,6 +47,7 @@ export default function RootLayout() {
         <Stack.Screen name="owner-onboarding/pricing" options={{ headerShown: false }} />
         <Stack.Screen name="owner-onboarding/confirmation" options={{ headerShown: false }} />
         <Stack.Screen name="owner-dashboard/jobs" options={{ headerShown: false }} />
+        <Stack.Screen name="owner-dashboard/earnings" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
