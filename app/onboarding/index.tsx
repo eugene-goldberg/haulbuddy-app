@@ -9,6 +9,7 @@ import {
   Dimensions} from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import FirebaseTest from '../../components/FirebaseTest';
 
 export default function OnboardingScreen() {
   const handleSignUp = () => {
@@ -38,6 +39,8 @@ export default function OnboardingScreen() {
             Sign up or log in to find out the best car for you
           </Text>
         </View>
+
+        <FirebaseTest />
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity

@@ -9,26 +9,58 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
-  Dimensions
+  Dimensions,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { registerUser } from '../../contexts/auth-service';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const { refreshUserRole } = useAuth();
 
-  const handleSignUp = () => {
-    // Navigate to the choices screen instead of the main app tabs
-    router.push('/choice');
+  const handleSignUp = async () => {
+    // Validate form
+    if (!name || !email || !password) {
+      setErrorMessage('Please fill out all fields');
+      return;
+    }
+    
+    // Validate password strength
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long');
+      return;
+    }
+    
+    setIsLoading(true);
+    setErrorMessage('');
+    
+    try {
+      const user = await registerUser({ name, email, password });
+      console.log('Signup successful!', user);
+      await refreshUserRole();
+      
+      // Explicitly navigate to the tabs route - AuthRoute will handle redirections
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      setErrorMessage(error.message);
+      console.error('Signup error:', error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleLogin = () => {
     // In a real app, this would handle Google OAuth
-    // For now, redirect to the choices screen as well
-    router.push('/choice');
+    Alert.alert('Feature Coming Soon', 'Google login is not yet implemented.');
   };
 
   const handleLogin = () => {
@@ -109,11 +141,20 @@ export default function SignupScreen() {
               </View>
             </View>
             
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+            
             <TouchableOpacity
               style={styles.signUpButton}
               onPress={handleSignUp}
+              disabled={isLoading}
             >
-              <Text style={styles.signUpButtonText}>Sign Up</Text>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.signUpButtonText}>Sign Up</Text>
+              )}
             </TouchableOpacity>
             
             <View style={styles.dividerContainer}>
@@ -151,6 +192,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  errorText: {
+    color: '#d32f2f',
+    marginBottom: 10,
+    textAlign: 'center',
   },
   topSection: {
     height: height * 0.2,

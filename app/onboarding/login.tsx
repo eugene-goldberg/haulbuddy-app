@@ -9,25 +9,50 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
-  Dimensions
+  Dimensions,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { loginWithEmail } from '../../contexts/auth-service';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const { refreshUserRole } = useAuth();
 
-  const handleLogin = () => {
-    // Navigate to the choices screen instead of the main app tabs
-    router.push('/choice');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setErrorMessage('Please enter both email and password');
+      return;
+    }
+    
+    setIsLoading(true);
+    setErrorMessage('');
+    
+    try {
+      const user = await loginWithEmail({ email, password });
+      console.log('Login successful!', user);
+      await refreshUserRole();
+      
+      // Explicitly navigate to the tabs route
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      setErrorMessage(error.message);
+      console.error('Login error:', error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleLogin = () => {
     // In a real app, this would handle Google OAuth
-    // For now, redirect to the choices screen as well
-    router.push('/choice');
+    Alert.alert('Feature Coming Soon', 'Google login is not yet implemented.');
   };
 
   const handleSignUp = () => {
@@ -94,11 +119,20 @@ export default function LoginScreen() {
               </View>
             </View>
             
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+            
             <TouchableOpacity
               style={styles.loginButton}
               onPress={handleLogin}
+              disabled={isLoading}
             >
-              <Text style={styles.loginButtonText}>Log In</Text>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.loginButtonText}>Log In</Text>
+              )}
             </TouchableOpacity>
             
             <View style={styles.dividerContainer}>
@@ -136,6 +170,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  errorText: {
+    color: '#d32f2f',
+    marginBottom: 10,
+    textAlign: 'center',
   },
   topSection: {
     height: height * 0.2,

@@ -1,5 +1,6 @@
-// // First import - must be at the top
-// import 'react-native-gesture-handler';
+import { AuthProvider } from './contexts/AuthContext';
+import { ExpoRoot } from 'expo-router';
+import FirebaseTest from './components/FirebaseTest';
 
 // import React from 'react';
 // import { NavigationContainer } from '@react-navigation/native';
@@ -154,48 +155,13 @@
 //   );
 // }
 
-// // Create the navigator
-// const Stack = createStackNavigator();
-
-// // App component with navigation setup
-// export default function App() {
-//   return (
-//     <NavigationContainer>
-//       <Stack.Navigator initialRouteName="Welcome">
-//         <Stack.Screen 
-//           name="Welcome" 
-//           component={WelcomeScreen} 
-//           options={{ title: 'Welcome' }} 
-//         />
-//         <Stack.Screen 
-//           name="Choice" 
-//           component={ChoiceScreen} 
-//           options={{ title: 'Make a Choice' }} 
-//         />
-//         <Stack.Screen 
-//           name="Choice1Screen1" 
-//           component={Choice1Screen1} 
-//           options={{ title: 'Choice 1 - Screen 1' }} 
-//         />
-//         <Stack.Screen 
-//           name="Choice1Screen2" 
-//           component={Choice1Screen2} 
-//           options={{ title: 'Choice 1 - Screen 2' }} 
-//         />
-//         <Stack.Screen 
-//           name="Choice2Screen1" 
-//           component={Choice2Screen1} 
-//           options={{ title: 'Choice 2 - Screen 1' }} 
-//         />
-//         <Stack.Screen 
-//           name="Choice2Screen2" 
-//           component={Choice2Screen2} 
-//           options={{ title: 'Choice 2 - Screen 2' }} 
-//         />
-//       </Stack.Navigator>
-//     </NavigationContainer>
-//   );
-// }
+export default function App() {
+  return (
+    <AuthProvider>
+      <ExpoRoot />
+    </AuthProvider>
+  );
+}
 
 // // Styles
 // const styles = StyleSheet.create({
