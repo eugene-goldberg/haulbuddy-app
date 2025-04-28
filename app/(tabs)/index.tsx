@@ -64,12 +64,12 @@ export default function WelcomeScreen() {
           </View>
         </View>
         
-        {/* Coninue Button */}
+        {/* Continue Button - Modified to go to onboarding instead of choice */}
         <TouchableOpacity
           style={styles.loginButton}
-          onPress={() => router.push('/choice')}
+          onPress={() => router.push('/onboarding')}
         >
-          <Text style={styles.loginButtonText}>Coninue</Text>
+          <Text style={styles.loginButtonText}>Continue</Text>
         </TouchableOpacity>
         
         {/* Spacer at bottom for scrolling */}

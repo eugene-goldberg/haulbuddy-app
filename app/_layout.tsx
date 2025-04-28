@@ -30,6 +30,8 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        {/* Add the onboarding routes first, so they're the initial screen */}
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="choice" options={{ headerShown: false }} />
         <Stack.Screen name="choice1/screen1" options={{ headerShown: false }} />
