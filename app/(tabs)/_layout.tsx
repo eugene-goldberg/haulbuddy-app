@@ -14,16 +14,14 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { user, isLoading } = useAuth();
   
-  // Check authentication and redirect if needed
+  // Log authentication state but don't redirect
   useEffect(() => {
-    if (!isLoading && !user) {
-      // User is not authenticated, redirect to onboarding
-      router.replace('/onboarding');
-    }
+    console.log('Tab layout auth check:', { 
+      isAuthenticated: !!user, 
+      isLoading,
+      userEmail: user?.email
+    });
   }, [user, isLoading]);
-
-  // Don't render anything while checking auth
-  if (isLoading || !user) return null;
 
   return (
     <Tabs

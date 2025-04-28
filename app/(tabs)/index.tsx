@@ -4,8 +4,25 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function WelcomeScreen() {
+  const { user, logout } = useAuth();
+  
+  const handleLogout = async () => {
+    console.log('Logging out...');
+    try {
+      await logout();
+      console.log('Logged out successfully');
+      
+      // Stay on the Welcome screen after logout instead of going to onboarding
+      console.log('Staying on Welcome screen after logout');
+      // No navigation needed - we'll stay on the current screen
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+  
   return (
     <ScrollView style={styles.scrollView}>
       <View style={styles.container}>
@@ -64,16 +81,34 @@ export default function WelcomeScreen() {
           </View>
         </View>
         
-        {/* Continue Button - Now navigates to the choice screen */}
+        {/* Continue Button - Checks auth before navigating */}
         <TouchableOpacity
           style={styles.loginButton}
           onPress={() => {
             console.log('Continue button pressed');
-            router.navigate('/choice');
+            if (user) {
+              // User is logged in, go to choice screen
+              console.log('User is authenticated, navigating to choice screen');
+              router.push('/choice');
+            } else {
+              // User is not logged in, go to onboarding
+              console.log('User is not authenticated, navigating to onboarding');
+              router.push('/onboarding/login');
+            }
           }}
         >
           <Text style={styles.loginButtonText}>Continue</Text>
         </TouchableOpacity>
+        
+        {/* Logout Button - Only show when user is logged in */}
+        {user && (
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+          >
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        )}
         
         {/* Spacer at bottom for scrolling */}
         <View style={{height: 40}} />
@@ -162,6 +197,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  logoutButton: {
+    backgroundColor: '#f44336',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 4,
+    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  logoutButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',

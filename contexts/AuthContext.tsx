@@ -95,8 +95,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Function to log user out
   const logout = async () => {
     try {
+      console.log('AuthContext: Starting logout process');
       await signOut();
-      // The auth state change listener will handle state update
+      
+      // Force state update - don't rely only on the listener
+      console.log('AuthContext: Manually updating state to logged out');
+      setState({
+        user: null,
+        userRole: null,
+        isLoading: false,
+      });
+      
+      console.log('AuthContext: Logout complete');
     } catch (error) {
       console.error('Error logging out:', error);
     }

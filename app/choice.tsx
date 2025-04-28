@@ -9,13 +9,29 @@ export default function ChoiceScreen() {
   
   // Make sure the user is authenticated to access this screen
   useEffect(() => {
-    console.log('Choice screen - Auth state:', { user: !!user, isLoading });
+    console.log('Choice screen - Auth state:', { 
+      isAuthenticated: !!user, 
+      isLoading, 
+      userEmail: user?.email 
+    });
+    
     if (!isLoading && !user) {
       // User is not authenticated, redirect to onboarding
-      console.log('Redirecting to onboarding from choice screen');
+      console.log('Redirecting to onboarding from choice screen - NO AUTH');
       router.replace('/onboarding');
     }
   }, [user, isLoading]);
+  
+  // Run this effect only once when the component mounts
+  useEffect(() => {
+    // Double check auth state on initial render
+    if (!user) {
+      console.log('Choice screen - Initial check: Not authenticated');
+      router.replace('/onboarding');
+    } else {
+      console.log('Choice screen - Initial check: User authenticated:', user.email);
+    }
+  }, []);
   
   // Handle button presses with logging for debugging
   const handleNeedTruck = () => {
@@ -28,8 +44,12 @@ export default function ChoiceScreen() {
     router.push('/owner-onboarding');
   };
 
-  // If still loading or not authenticated, show nothing
-  if (isLoading || !user) return null;
+  // If not authenticated, redirect to onboarding
+  if (!isLoading && !user) {
+    console.log('Choice screen - Not authenticated, redirecting to onboarding');
+    router.replace('/onboarding');
+    return null;
+  }
 
   return (
     <View style={styles.container}>
