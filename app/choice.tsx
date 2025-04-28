@@ -1,8 +1,7 @@
-// app/choice.tsx
-
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ChoiceScreen() {
   return (
@@ -10,17 +9,17 @@ export default function ChoiceScreen() {
       <Text style={styles.title}>How will you use HaulBuddy?</Text>
       
       <TouchableOpacity
-        style={styles.button}
+        style={styles.choiceButton}
         onPress={() => router.push('/choice1/screen1')}
       >
-        <Text style={styles.buttonText}>I need a truck</Text>
+        <Text style={styles.choiceButtonText}>I need a truck</Text>
       </TouchableOpacity>
       
       <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push('/choice2/screen1')}
+        style={styles.choiceButton}
+        onPress={() => router.push('/owner-onboarding')}
       >
-        <Text style={styles.buttonText}>I own a truck</Text>
+        <Text style={styles.choiceButtonText}>I own a truck</Text>
       </TouchableOpacity>
     </View>
   );
@@ -32,28 +31,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff',
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 60,
-    color: '#2196F3',
+    marginBottom: 40,
+    color: '#0096FF',
     textAlign: 'center',
   },
-  button: {
-    width: '100%',
-    backgroundColor: '#e6f7ff',
+  choiceButton: {
+    width: '80%',
+    backgroundColor: '#E6F7FF',
     paddingVertical: 20,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#d1e8ff',
+    borderColor: '#d0d0d0',
   },
-  buttonText: {
-    color: '#333',
-    fontSize: 22,
+  choiceButtonText: {
+    fontSize: 18,
     fontWeight: '500',
+    color: '#333',
   },
 });

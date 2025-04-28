@@ -30,8 +30,6 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        {/* Add the onboarding routes first, so they're the initial screen */}
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="choice" options={{ headerShown: false }} />
         <Stack.Screen name="choice1/screen1" options={{ headerShown: false }} />
@@ -40,6 +38,14 @@ export default function RootLayout() {
         <Stack.Screen name="choice1/screen4" options={{ headerShown: false }} />
         <Stack.Screen name="choice1/screen5" options={{ headerShown: false }} />
         <Stack.Screen name="choice1/tracking" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding/login" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding/signup" options={{ headerShown: false }} />
+        <Stack.Screen name="owner-onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="owner-onboarding/vehicle-info" options={{ headerShown: false }} />
+        <Stack.Screen name="owner-onboarding/vehicle-photos" options={{ headerShown: false }} />
+        <Stack.Screen name="owner-onboarding/pricing" options={{ headerShown: false }} />
+        <Stack.Screen name="owner-onboarding/confirmation" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
