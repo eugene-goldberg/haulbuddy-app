@@ -140,7 +140,7 @@ export default function JobsScreen() {
   
   const navigateToProfile = () => {
     // Navigate to profile screen
-    console.log('Navigate to profile');
+    router.push('/owner-dashboard/profile');
   };
   
   const navigateToJobDetail = (jobId: string) => {

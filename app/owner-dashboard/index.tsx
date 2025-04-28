@@ -91,7 +91,7 @@ export default function OwnerDashboardScreen() {
 
   const navigateToProfile = () => {
     // Navigate to truck profile screen
-    console.log('Navigate to profile');
+    router.push('/owner-dashboard/profile');
   };
 
   const acceptJobRequest = (jobId: string) => {
