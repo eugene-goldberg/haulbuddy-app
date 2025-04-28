@@ -19,7 +19,7 @@ export default function ConfirmationScreen() {
 
   const handleGoToDashboard = () => {
     // In a real app, navigate to the driver dashboard
-    router.push('/(tabs)');
+    router.push('/owner-dashboard');
   };
 
   return (
