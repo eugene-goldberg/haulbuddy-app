@@ -76,7 +76,7 @@ export default function OwnerDashboardScreen() {
 
   const navigateToJobs = () => {
     // Navigate to jobs management screen
-    console.log('Navigate to jobs');
+    router.push('/owner-dashboard/jobs');
   };
 
   const navigateToEarnings = () => {
