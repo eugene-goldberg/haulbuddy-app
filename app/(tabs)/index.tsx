@@ -53,7 +53,7 @@ export default function WelcomeScreen() {
         {/* Step 1 */}
         <View style={styles.stepContainer}>
           <View style={styles.stepIconContainer}>
-            <Ionicons name="phone-portrait" size={50} color="#333" />
+            <FontAwesome5 name="truck" size={40} color="#3498db" />
           </View>
           <View style={styles.stepTextContainer}>
             <Text style={styles.stepTitle}>Book a Truck</Text>
@@ -66,7 +66,7 @@ export default function WelcomeScreen() {
         {/* Step 2 */}
         <View style={styles.stepContainer}>
           <View style={styles.stepIconContainer}>
-            <FontAwesome5 name="truck" size={40} color="#e74c3c" />
+            <Ionicons name="person" size={45} color="#e74c3c" />
           </View>
           <View style={styles.stepTextContainer}>
             <Text style={styles.stepTitle}>Meet Your Driver</Text>
