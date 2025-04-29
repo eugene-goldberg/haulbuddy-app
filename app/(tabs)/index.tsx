@@ -1,6 +1,6 @@
 // app/(tabs)/index.tsx
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
@@ -8,6 +8,14 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export default function WelcomeScreen() {
   const { user, logout } = useAuth();
+  
+  // Log authentication state for debugging
+  useEffect(() => {
+    console.log('Welcome screen - Auth state:', { 
+      isAuthenticated: !!user, 
+      userEmail: user?.email 
+    });
+  }, [user]);
   
   const handleLogout = async () => {
     console.log('Logging out...');
@@ -97,7 +105,9 @@ export default function WelcomeScreen() {
             }
           }}
         >
-          <Text style={styles.loginButtonText}>Continue</Text>
+          <Text style={styles.loginButtonText}>
+            {user ? "You are in. Proceed!" : "Continue"}
+          </Text>
         </TouchableOpacity>
         
         {/* Logout Button - Only show when user is logged in */}

@@ -40,7 +40,7 @@ export default function LoginScreen() {
       console.log('Login successful!', user);
       await refreshUserRole();
       
-      // Explicitly navigate to the tabs route
+      // Return to welcome screen after successful login - more stable
       router.replace('/(tabs)');
     } catch (error: any) {
       setErrorMessage(error.message);

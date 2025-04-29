@@ -48,7 +48,7 @@ export default function SignupScreen() {
       console.log('Signup successful!', user);
       await refreshUserRole();
       
-      // Explicitly navigate to the tabs route - AuthRoute will handle redirections
+      // Return to welcome screen after successful signup - more stable
       router.replace('/(tabs)');
     } catch (error: any) {
       setErrorMessage(error.message);
