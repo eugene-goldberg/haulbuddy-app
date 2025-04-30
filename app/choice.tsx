@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { getOwnerVehicles } from '../firebase/firestore-service';
+import { getOwnerVehicles, getUserProfile } from '../firebase/firestore-service';
+import { hasCompletedCustomerOnboarding } from '../services/customer-onboarding-service';
 
 export default function ChoiceScreen() {
   const { user, isLoading, userRole } = useAuth();
   const [checkingVehicles, setCheckingVehicles] = useState(false);
+  const [checkingCustomer, setCheckingCustomer] = useState(false);
   
   // Make sure the user is authenticated to access this screen
   useEffect(() => {
@@ -36,9 +38,35 @@ export default function ChoiceScreen() {
   }, []);
   
   // Handle button presses with logging for debugging
-  const handleNeedTruck = () => {
+  const handleNeedTruck = async () => {
     console.log('I need a truck button pressed');
-    router.push('/choice1/screen1');
+    
+    if (!user) return;
+    
+    try {
+      setCheckingCustomer(true);
+      
+      // Check if the user is already a customer with completed onboarding
+      const userProfile = await getUserProfile(user.uid);
+      const hasCompletedOnboarding = await hasCompletedCustomerOnboarding(userProfile);
+      
+      if (hasCompletedOnboarding) {
+        // User has already completed customer onboarding
+        console.log('User has already completed customer onboarding, skipping to customer dashboard');
+        // Go directly to the customer dashboard
+        router.push('/choice1/customer-dashboard');
+      } else {
+        // User needs to complete onboarding
+        console.log('User needs to complete customer onboarding');
+        router.push('/choice1/screen1');
+      }
+    } catch (error) {
+      console.error('Error checking customer status:', error);
+      // On error, default to onboarding flow
+      router.push('/choice1/screen1');
+    } finally {
+      setCheckingCustomer(false);
+    }
   };
   
   // Check if the user is already an owner with vehicles
@@ -90,17 +118,24 @@ export default function ChoiceScreen() {
       <Text style={styles.title}>How will you use HaulBuddy?</Text>
       
       <TouchableOpacity
-        style={styles.choiceButton}
+        style={[styles.choiceButton, checkingCustomer && styles.disabledButton]}
         onPress={handleNeedTruck}
-        disabled={checkingVehicles}
+        disabled={checkingCustomer || checkingVehicles}
       >
-        <Text style={styles.choiceButtonText}>I need a truck</Text>
+        {checkingCustomer ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#4a80f5" />
+            <Text style={styles.loadingText}>Checking...</Text>
+          </View>
+        ) : (
+          <Text style={styles.choiceButtonText}>I need a truck</Text>
+        )}
       </TouchableOpacity>
       
       <TouchableOpacity
         style={[styles.choiceButton, checkingVehicles && styles.disabledButton]}
         onPress={handleOwnTruck}
-        disabled={checkingVehicles}
+        disabled={checkingVehicles || checkingCustomer}
       >
         {checkingVehicles ? (
           <View style={styles.loadingContainer}>

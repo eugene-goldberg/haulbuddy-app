@@ -23,7 +23,17 @@ export interface UserProfile {
 // Customer user profile - extends the base profile
 export interface CustomerProfile extends UserProfile {
   role: 'user';
-  // Additional customer-specific fields could be added here
+  // Customer-specific fields
+  preferredNotifications?: {
+    email: boolean;
+    sms: boolean;
+    push: boolean;
+  };
+  savedAddresses?: {
+    home?: string;
+    work?: string;
+    other?: string[];
+  };
 }
 
 // Owner user profile - extends the base profile
