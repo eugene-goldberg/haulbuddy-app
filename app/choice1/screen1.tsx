@@ -6,8 +6,12 @@ export default function Choice1Screen1() {
   const [cargoDescription, setCargoDescription] = useState('');
   const [pickupAddress, setPickupAddress] = useState('');
   const [destinationAddress, setDestinationAddress] = useState('');
-  const [pickupDateTime, setPickupDateTime] = useState('');
+  const [pickupDate, setPickupDate] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
   const [needsAssistance, setNeedsAssistance] = useState<boolean | null>(null);
+  
+  // Combined date and time for submission
+  const pickupDateTime = pickupDate && pickupTime ? `${pickupDate} ${pickupTime}` : '';
 
   return (
     <ScrollView>
@@ -40,12 +44,36 @@ export default function Choice1Screen1() {
           />
           
           <Text style={styles.formLabel}>Enter the desired date and time of the pick up</Text>
-          <TextInput
-            style={styles.dateTimeInput}
-            value={pickupDateTime}
-            onChangeText={setPickupDateTime}
-            placeholder="MM/DD/YYYY HH:MM AM/PM"
-          />
+          
+          {/* Date and Time inputs with separate fields */}
+          <View style={styles.dateTimeContainer}>
+            <View style={styles.dateInputContainer}>
+              <Text style={styles.dateTimeLabel}>Date:</Text>
+              <TextInput
+                style={styles.dateTimeInput}
+                value={pickupDate}
+                onChangeText={setPickupDate}
+                placeholder="MM/DD/YYYY"
+                keyboardType="numbers-and-punctuation"
+              />
+            </View>
+            
+            <View style={styles.timeInputContainer}>
+              <Text style={styles.dateTimeLabel}>Time:</Text>
+              <TextInput
+                style={styles.dateTimeInput}
+                value={pickupTime}
+                onChangeText={setPickupTime}
+                placeholder="HH:MM AM/PM"
+                keyboardType="default"
+              />
+            </View>
+          </View>
+          
+          {/* Helper text for date/time format */}
+          <Text style={styles.helperText}>
+            Please enter date as MM/DD/YYYY and time as HH:MM AM/PM
+          </Text>
           
           <Text style={styles.formLabel}>Will you require assistance with loading / unloading?</Text>
           <View style={styles.radioContainer}>
@@ -126,14 +154,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 50,
   },
+  dateTimeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  dateInputContainer: {
+    flex: 1,
+    marginRight: 5,
+  },
+  timeInputContainer: {
+    flex: 1,
+    marginLeft: 5,
+  },
+  dateTimeLabel: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 4,
+  },
   dateTimeInput: {
     borderWidth: 1,
     borderColor: '#555',
     borderRadius: 4,
     padding: 12,
-    marginBottom: 20,
+    marginBottom: 10,
     fontSize: 16,
     height: 50,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontStyle: 'italic',
   },
   radioContainer: {
     flexDirection: 'row',
