@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Switch } from 'react-native';
 import { router } from 'expo-router';
+import { useBooking } from '../../contexts/BookingContext';
 
 export default function Choice1Screen1() {
-  const [cargoDescription, setCargoDescription] = useState('');
-  const [pickupAddress, setPickupAddress] = useState('');
-  const [destinationAddress, setDestinationAddress] = useState('');
+  const { bookingData, updateBookingData } = useBooking();
+  
+  // Initialize local state from context
+  const [cargoDescription, setCargoDescription] = useState(bookingData.cargoDescription || '');
+  const [pickupAddress, setPickupAddress] = useState(bookingData.pickupAddress || '');
+  const [destinationAddress, setDestinationAddress] = useState(bookingData.destinationAddress || '');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
-  const [needsAssistance, setNeedsAssistance] = useState(false);
-  const [ridingAlong, setRidingAlong] = useState(false);
+  const [needsAssistance, setNeedsAssistance] = useState(bookingData.needsAssistance || false);
+  const [ridingAlong, setRidingAlong] = useState(bookingData.ridingAlong || false);
   
   // Combined date and time for submission
   const pickupDateTime = pickupDate && pickupTime ? `${pickupDate} ${pickupTime}` : '';
+  
+  // Initialize date and time from context if available
+  useEffect(() => {
+    if (bookingData.pickupDateTime) {
+      const date = new Date(bookingData.pickupDateTime);
+      setPickupDate(date.toLocaleDateString('en-US'));
+      setPickupTime(date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+    }
+  }, []);
 
   return (
     <ScrollView>
@@ -108,7 +121,19 @@ export default function Choice1Screen1() {
           
           <TouchableOpacity
             style={styles.button}
-            onPress={() => router.push('/choice1/screen2')}
+            onPress={() => {
+              // Save form data to the context before navigating
+              updateBookingData({
+                cargoDescription,
+                pickupAddress,
+                destinationAddress,
+                pickupDateTime: pickupDateTime ? new Date(pickupDateTime) : new Date(),
+                needsAssistance,
+                ridingAlong,
+                estimatedHours: 2 // Default value
+              });
+              router.push('/choice1/screen2');
+            }}
           >
             <Text style={styles.buttonText}>Continue</Text>
           </TouchableOpacity>

@@ -211,21 +211,37 @@ export const uploadVehiclePhoto = async (
 // Create a new booking
 export const createBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Promise<Booking> => {
   try {
+    // Generate a document reference with auto-ID
     const bookingRef = doc(collection(db, COLLECTIONS.BOOKINGS));
+    const bookingId = bookingRef.id;
     
+    console.log('DEBUG - Creating booking with ID:', bookingId);
+    
+    // Create booking data with ID field
     const newBooking = {
       ...bookingData,
-      id: bookingRef.id,
+      id: bookingId, // Store ID in the document data
       status: 'pending' as BookingStatus,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
     
+    // Write to Firestore
     await setDoc(bookingRef, newBooking);
+    console.log('DEBUG - Booking successfully written to Firestore');
     
     // We need to fetch the document with timestamps to return
     const bookingDoc = await getDoc(bookingRef);
-    return bookingDoc.data() as Booking;
+    const data = bookingDoc.data();
+    
+    // Ensure the ID is included in the returned data
+    const bookingWithId = { 
+      ...data, 
+      id: bookingId 
+    } as Booking;
+    
+    console.log('DEBUG - Returning booking:', JSON.stringify(bookingWithId));
+    return bookingWithId;
   } catch (error) {
     console.error('Error creating booking:', error);
     throw error;
@@ -259,7 +275,17 @@ export const getCustomerBookings = async (customerId: string): Promise<Booking[]
     );
     
     const snapshot = await getDocs(bookingsQuery);
-    return snapshot.docs.map(doc => doc.data() as Booking);
+    const bookings = snapshot.docs.map(doc => {
+      // Ensure we're getting the data with the document ID
+      const data = doc.data();
+      // Ensure the document ID is set properly
+      return { ...data, id: doc.id } as Booking;
+    });
+    
+    console.log('DEBUG - getCustomerBookings found:', bookings.length, 'bookings');
+    console.log('DEBUG - getCustomerBookings first booking:', bookings[0] ? JSON.stringify(bookings[0]) : 'No bookings');
+    
+    return bookings;
   } catch (error) {
     console.error('Error getting customer bookings:', error);
     throw error;
@@ -316,5 +342,20 @@ export const timestampToDate = (timestamp: Timestamp): Date => {
 
 // Convert Date to Firebase timestamp
 export const dateToTimestamp = (date: Date): Timestamp => {
-  return Timestamp.fromDate(date);
+  try {
+    // Ensure the date is valid first
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date provided to dateToTimestamp:', date);
+      // Fallback to current date if invalid
+      return Timestamp.fromDate(new Date());
+    }
+    // Use direct timestamp creation with seconds and nanoseconds
+    const seconds = Math.floor(date.getTime() / 1000);
+    const nanoseconds = (date.getTime() % 1000) * 1000000;
+    return new Timestamp(seconds, nanoseconds);
+  } catch (error) {
+    console.error('Error converting date to timestamp:', error);
+    // Fallback to current date if error occurs
+    return Timestamp.fromDate(new Date());
+  }
 };

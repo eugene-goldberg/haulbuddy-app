@@ -11,11 +11,42 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { useBooking } from '../../contexts/BookingContext';
 
 export default function Choice1Screen5() {
-  // Mock booking confirmation data
+  // Use the booking context
+  const { bookingData } = useBooking();
+  
+  // Format pickup date for display
+  let formattedDate = "April 28, 2025";
+  let formattedTime = "2:00 PM";
+  
+  // Safely handle the date with null checks
+  if (bookingData?.pickupDateTime instanceof Date && !isNaN(bookingData.pickupDateTime.getTime())) {
+    try {
+      formattedDate = bookingData.pickupDateTime.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      formattedTime = bookingData.pickupDateTime.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
+      console.log("Successfully formatted date:", formattedDate, formattedTime);
+    } catch (error) {
+      console.error("Error formatting date:", error);
+    }
+  } else {
+    console.log("Using default date - no valid date in context");
+  }
+  
+  // Default address for fallback
+  const defaultAddress = '123 Main St, Chicago, IL 60601';
+  
+  // Combine booking data with driver info
   const confirmation = {
-    id: 'HB-29485',
+    id: 'HB-' + Math.floor(10000 + Math.random() * 90000),
     status: 'Pending Driver Acceptance',
     driver: {
       name: 'John D.',
@@ -23,9 +54,10 @@ export default function Choice1Screen5() {
       phone: '(312) 555-7890',
     },
     pickup: {
-      address: '123 Main St, Chicago, IL 60601',
-      date: 'April 28, 2025',
-      time: '2:00 PM',
+      // Use actual booking data with fallbacks and optional chaining
+      address: bookingData?.pickupAddress || defaultAddress,
+      date: formattedDate,
+      time: formattedTime,
     },
     expectedResponse: '15 minutes',
   };

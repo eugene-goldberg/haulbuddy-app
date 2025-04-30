@@ -11,6 +11,9 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
+import { useBooking } from '../../contexts/BookingContext';
+import { submitBooking } from '../../services/booking-service';
 
 export default function Choice1Screen4() {
   const [isRequesting, setIsRequesting] = useState(false);
@@ -30,13 +33,37 @@ export default function Choice1Screen4() {
     avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
   };
   
-  // Mock booking details - in a real app, this would come from form data
-  const bookingDetails = {
-    pickup: '123 Main St, Chicago, IL 60601',
-    destination: '456 Pine Ave, Chicago, IL 60605',
-    datetime: 'April 28, 2025 at 2:00 PM',
+  // Get actual booking details from context
+  const formatBookingDateTime = (date) => {
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }) + ' at ' + date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
+    }
+    return 'April 28, 2025 at 2:00 PM';
+  };
+  
+  // Check if bookingData exists to prevent errors
+  const defaultBookingData = {
+    pickupAddress: '123 Main St, Chicago, IL 60601',
+    destinationAddress: '456 Pine Ave, Chicago, IL 60605',
+    pickupDateTime: new Date(2025, 4, 15, 14, 0),
     cargoDescription: 'Moving a small sofa and dining table',
     needsAssistance: true,
+  };
+  
+  // Use actual booking data from context with fallbacks
+  const bookingDetails = {
+    pickup: bookingData?.pickupAddress || defaultBookingData.pickupAddress,
+    destination: bookingData?.destinationAddress || defaultBookingData.destinationAddress,
+    datetime: formatBookingDateTime(bookingData?.pickupDateTime || defaultBookingData.pickupDateTime),
+    cargoDescription: bookingData?.cargoDescription || defaultBookingData.cargoDescription,
+    needsAssistance: bookingData?.needsAssistance ?? defaultBookingData.needsAssistance,
   };
   
   const renderRatingStars = (rating: number) => {
@@ -69,11 +96,68 @@ export default function Choice1Screen4() {
     return stars;
   };
   
-  const requestBooking = () => {
+  // Get auth and booking context
+  const { user } = useAuth();
+  const { bookingData } = useBooking();
+
+  const requestBooking = async () => {
+    if (!user) {
+      console.error('No authenticated user found');
+      return;
+    }
+    
     setIsRequesting(true);
     
-    // Simulate network request
-    setTimeout(() => {
+    try {
+      // Check if bookingData exists
+      console.log("DEBUG - screen4 - Booking context available:", !!bookingData);
+      if (bookingData) {
+        console.log("DEBUG - screen4 - Booking context data:", JSON.stringify(bookingData));
+      }
+      
+      // Default data in case bookingData is undefined
+      const defaultData = {
+        cargoDescription: "Moving furniture and boxes",
+        pickupAddress: "123 Main St, Chicago, IL",
+        destinationAddress: "456 Oak Ave, Chicago, IL",
+        pickupDateTime: new Date(2025, 4, 15, 14, 0), // May 15, 2025, 2:00 PM
+        needsAssistance: true,
+        ridingAlong: true,
+        estimatedHours: 3
+      };
+      
+      // Make sure the date is valid
+      let pickupDate;
+      if (bookingData?.pickupDateTime instanceof Date && !isNaN(bookingData.pickupDateTime.getTime())) {
+        pickupDate = bookingData.pickupDateTime;
+      } else {
+        // Fallback to a valid date if the context date is invalid or missing
+        pickupDate = defaultData.pickupDateTime;
+      }
+      console.log("DEBUG - screen4 - Using pickup date:", pickupDate.toISOString());
+      
+      // Combine context data with required fields for the driver
+      const completeBookingData = {
+        // Use context data with fallbacks only if fields are empty or bookingData is undefined
+        cargoDescription: bookingData?.cargoDescription || defaultData.cargoDescription,
+        pickupAddress: bookingData?.pickupAddress || defaultData.pickupAddress,
+        destinationAddress: bookingData?.destinationAddress || defaultData.destinationAddress,
+        pickupDateTime: pickupDate,
+        needsAssistance: bookingData?.needsAssistance ?? defaultData.needsAssistance,
+        ridingAlong: bookingData?.ridingAlong ?? defaultData.ridingAlong,
+        estimatedHours: bookingData?.estimatedHours || defaultData.estimatedHours,
+        // Always include the driver info
+        ownerId: driver.id || "1", 
+        vehicleId: 'vehicle-' + (driver.id || "1") 
+      };
+      
+      console.log("DEBUG - screen4 - Submitting booking data:", JSON.stringify(completeBookingData));
+      
+      // Submit booking to Firestore
+      const newBooking = await submitBooking(user.uid, completeBookingData);
+      console.log("DEBUG - screen4 - Booking created successfully:", 
+        newBooking ? JSON.stringify(newBooking) : "No booking returned");
+      
       setIsRequesting(false);
       setRequestComplete(true);
       
@@ -81,7 +165,11 @@ export default function Choice1Screen4() {
       setTimeout(() => {
         router.push('/choice1/screen5');
       }, 1500);
-    }, 2000);
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      setIsRequesting(false);
+      alert('Failed to create booking. Please try again.');
+    }
   };
 
   return (

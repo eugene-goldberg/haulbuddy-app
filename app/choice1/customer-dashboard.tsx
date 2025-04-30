@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   ScrollView,
   Image,
   Platform,
-  FlatList
+  FlatList,
+  ActivityIndicator
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -17,34 +18,104 @@ export default function CustomerDashboard() {
   const { user } = useAuth();
   
   // Mock data for customer dashboard
-  const [activeBookings, setActiveBookings] = useState([
-    {
-      id: 'booking-1',
-      status: 'confirmed',
-      date: 'Today, 2:00 PM',
-      driver: 'John D.',
-      vehicleType: 'Pickup Truck',
-      pickup: '123 Main St, Chicago, IL',
-      destination: '456 Oak Ave, Chicago, IL',
-    }
-  ]);
+  const [activeBookings, setActiveBookings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const [pastBookings, setPastBookings] = useState([
-    {
-      id: 'booking-history-1',
-      date: 'April 15, 2025',
-      driver: 'Mike S.',
-      vehicleType: 'Cargo Van',
-      status: 'completed',
-    },
-    {
-      id: 'booking-history-2',
-      date: 'March 22, 2025',
-      driver: 'Sarah L.',
-      vehicleType: 'Pickup Truck',
-      status: 'completed',
-    }
-  ]);
+  // Import booking service
+  const { getActiveBookings, getPastBookings } = require('../../services/booking-service');
+  
+  // Load the user's bookings
+  useEffect(() => {
+    const loadBookings = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        console.log('DEBUG - customer-dashboard - Loading bookings for user:', user.uid);
+        const bookings = await getActiveBookings(user.uid);
+        console.log('DEBUG - customer-dashboard - Raw bookings received:', 
+          bookings.length ? JSON.stringify(bookings) : 'No bookings found');
+        
+        // Format bookings for display
+        const formattedBookings = bookings.map(booking => {
+          console.log('DEBUG - customer-dashboard - Processing booking:', booking.id);
+          console.log('DEBUG - customer-dashboard - Booking pickupDateTime:', 
+            booking.pickupDateTime ? booking.pickupDateTime.toString() : 'undefined');
+          
+          try {
+            // Safely handle potential timestamp issues
+            let formattedDate = 'Unknown date';
+            if (booking.pickupDateTime) {
+              if (typeof booking.pickupDateTime.toDate === 'function') {
+                formattedDate = booking.pickupDateTime.toDate().toLocaleString();
+              } else if (booking.pickupDateTime instanceof Date) {
+                formattedDate = booking.pickupDateTime.toLocaleString();
+              }
+            }
+            
+            return {
+              id: booking.id,
+              status: booking.status,
+              date: formattedDate,
+              driver: 'John D.', // In a real app, you'd fetch the driver name
+              vehicleType: 'Pickup Truck',
+              pickup: booking.pickupAddress,
+              destination: booking.destinationAddress
+            };
+          } catch (err) {
+            console.error('DEBUG - customer-dashboard - Error formatting booking:', err);
+            return {
+              id: booking.id,
+              status: booking.status,
+              date: 'Error formatting date',
+              driver: 'John D.',
+              vehicleType: 'Pickup Truck',
+              pickup: booking.pickupAddress || 'Unknown',
+              destination: booking.destinationAddress || 'Unknown'
+            };
+          }
+        });
+        
+        console.log('DEBUG - customer-dashboard - Formatted bookings:', 
+          formattedBookings.length ? JSON.stringify(formattedBookings) : 'No formatted bookings');
+        setActiveBookings(formattedBookings);
+      } catch (error) {
+        console.error('Error loading bookings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadBookings();
+  }, [user]);
+  
+  const [pastBookings, setPastBookings] = useState([]);
+  
+  // Load past bookings
+  useEffect(() => {
+    const loadPastBookings = async () => {
+      if (!user) return;
+      
+      try {
+        const bookings = await getPastBookings(user.uid);
+        
+        // Format past bookings for display
+        const formattedBookings = bookings.map(booking => ({
+          id: booking.id,
+          date: new Date(booking.pickupDateTime.toDate()).toLocaleDateString(),
+          driver: booking.ownerId === 'owner123' ? 'John D.' : 'Mike S.', // Mock names
+          vehicleType: booking.vehicleId.includes('van') ? 'Cargo Van' : 'Pickup Truck',
+          status: booking.status
+        }));
+        
+        setPastBookings(formattedBookings);
+      } catch (error) {
+        console.error('Error loading past bookings:', error);
+      }
+    };
+    
+    loadPastBookings();
+  }, [user]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -111,13 +182,19 @@ export default function CustomerDashboard() {
           <Text style={styles.sectionTitle}>Active Bookings</Text>
         </View>
 
-        {activeBookings.length > 0 ? (
-          activeBookings.map(booking => (
-            <TouchableOpacity 
-              key={booking.id} 
-              style={styles.bookingCard}
-              onPress={() => viewBookingDetails(booking.id)}
-            >
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4a80f5" />
+            <Text style={styles.loadingText}>Loading your bookings...</Text>
+          </View>
+        ) : (
+          activeBookings.length > 0 ? (
+            activeBookings.map(booking => (
+              <TouchableOpacity 
+                key={booking.id} 
+                style={styles.bookingCard}
+                onPress={() => viewBookingDetails(booking.id)}
+              >
               <View style={styles.bookingHeader}>
                 <View style={styles.statusContainer}>
                   <View style={[styles.statusDot, { backgroundColor: getStatusColor(booking.status) }]} />
@@ -173,13 +250,14 @@ export default function CustomerDashboard() {
                 </View>
               </View>
             </TouchableOpacity>
-          ))
-        ) : (
-          <View style={styles.emptyStateContainer}>
-            <MaterialIcons name="local-shipping" size={48} color="#ccc" />
-            <Text style={styles.emptyStateText}>No active bookings</Text>
-            <Text style={styles.emptyStateSubtext}>Your current bookings will appear here</Text>
-          </View>
+            ))
+          ) : (
+            <View style={styles.emptyStateContainer}>
+              <MaterialIcons name="local-shipping" size={48} color="#ccc" />
+              <Text style={styles.emptyStateText}>No active bookings</Text>
+              <Text style={styles.emptyStateSubtext}>Your current bookings will appear here</Text>
+            </View>
+          )
         )}
 
         <View style={styles.sectionHeader}>
@@ -460,6 +538,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 40,
     marginBottom: 16,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 40,
+    marginBottom: 16,
+    minHeight: 150,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#777',
+    marginTop: 12,
   },
   emptyStateText: {
     fontSize: 16,
