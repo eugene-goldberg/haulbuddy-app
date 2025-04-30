@@ -1,11 +1,13 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { getOwnerVehicles } from '../firebase/firestore-service';
 
 export default function ChoiceScreen() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, userRole } = useAuth();
+  const [checkingVehicles, setCheckingVehicles] = useState(false);
   
   // Make sure the user is authenticated to access this screen
   useEffect(() => {
@@ -39,9 +41,41 @@ export default function ChoiceScreen() {
     router.push('/choice1/screen1');
   };
   
-  const handleOwnTruck = () => {
+  // Check if the user is already an owner with vehicles
+  const handleOwnTruck = async () => {
     console.log('I own a truck button pressed');
-    router.push('/owner-onboarding');
+    
+    if (!user) return;
+    
+    try {
+      setCheckingVehicles(true);
+      
+      // If the user already has the owner role, they've already been through onboarding
+      if (userRole === 'owner') {
+        console.log('User is already an owner, redirecting to dashboard');
+        router.push('/owner-dashboard');
+        return;
+      }
+      
+      // Check if the user has any vehicles
+      const vehicles = await getOwnerVehicles(user.uid);
+      
+      if (vehicles && vehicles.length > 0) {
+        // User has vehicles, send them to the dashboard
+        console.log('User has vehicles, redirecting to dashboard');
+        router.push('/owner-dashboard');
+      } else {
+        // User has no vehicles, send them to onboarding
+        console.log('User has no vehicles, redirecting to onboarding');
+        router.push('/owner-onboarding');
+      }
+    } catch (error) {
+      console.error('Error checking owner status:', error);
+      // On error, default to onboarding
+      router.push('/owner-onboarding');
+    } finally {
+      setCheckingVehicles(false);
+    }
   };
 
   // If not authenticated, redirect to onboarding
@@ -58,15 +92,24 @@ export default function ChoiceScreen() {
       <TouchableOpacity
         style={styles.choiceButton}
         onPress={handleNeedTruck}
+        disabled={checkingVehicles}
       >
         <Text style={styles.choiceButtonText}>I need a truck</Text>
       </TouchableOpacity>
       
       <TouchableOpacity
-        style={styles.choiceButton}
+        style={[styles.choiceButton, checkingVehicles && styles.disabledButton]}
         onPress={handleOwnTruck}
+        disabled={checkingVehicles}
       >
-        <Text style={styles.choiceButtonText}>I own a truck</Text>
+        {checkingVehicles ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#4a80f5" />
+            <Text style={styles.loadingText}>Checking...</Text>
+          </View>
+        ) : (
+          <Text style={styles.choiceButtonText}>I own a truck</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -96,6 +139,21 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#d0d0d0',
+  },
+  disabledButton: {
+    backgroundColor: '#f5f5f5',
+    borderColor: '#e0e0e0',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
+    marginLeft: 10,
   },
   choiceButtonText: {
     fontSize: 18,
