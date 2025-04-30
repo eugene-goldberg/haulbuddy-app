@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Switch } from 'react-native';
 import { router } from 'expo-router';
 
 export default function Choice1Screen1() {
@@ -8,7 +8,8 @@ export default function Choice1Screen1() {
   const [destinationAddress, setDestinationAddress] = useState('');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
-  const [needsAssistance, setNeedsAssistance] = useState<boolean | null>(null);
+  const [needsAssistance, setNeedsAssistance] = useState(false);
+  const [ridingAlong, setRidingAlong] = useState(false);
   
   // Combined date and time for submission
   const pickupDateTime = pickupDate && pickupTime ? `${pickupDate} ${pickupTime}` : '';
@@ -75,33 +76,34 @@ export default function Choice1Screen1() {
             Please enter date as MM/DD/YYYY and time as HH:MM AM/PM
           </Text>
           
-          <Text style={styles.formLabel}>Will you require assistance with loading / unloading?</Text>
-          <View style={styles.radioContainer}>
-            <TouchableOpacity 
-              style={styles.radioOption}
-              onPress={() => setNeedsAssistance(true)}
-            >
-              <View style={[
-                styles.radioCircle, 
-                needsAssistance === true && styles.radioCircleSelected
-              ]}>
-                {needsAssistance === true && <View style={styles.radioInnerCircle} />}
-              </View>
-              <Text style={styles.radioText}>Yes</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.radioOption}
-              onPress={() => setNeedsAssistance(false)}
-            >
-              <View style={[
-                styles.radioCircle, 
-                needsAssistance === false && styles.radioCircleSelected
-              ]}>
-                {needsAssistance === false && <View style={styles.radioInnerCircle} />}
-              </View>
-              <Text style={styles.radioText}>No</Text>
-            </TouchableOpacity>
+          <View style={styles.switchContainer}>
+            <Text style={styles.switchLabel}>Will you require assistance with loading / unloading?</Text>
+            <View style={styles.switchWithLabel}>
+              <Text style={styles.switchValueLabel}>{needsAssistance ? 'Yes' : 'No'}</Text>
+              <Switch
+                trackColor={{ false: '#767577', true: '#4a80f5' }}
+                thumbColor={needsAssistance ? '#ffffff' : '#f4f3f4'}
+                ios_backgroundColor="#767577"
+                onValueChange={setNeedsAssistance}
+                value={needsAssistance}
+                style={styles.switch}
+              />
+            </View>
+          </View>
+          
+          <View style={styles.switchContainer}>
+            <Text style={styles.switchLabel}>Will you be riding along with the driver?</Text>
+            <View style={styles.switchWithLabel}>
+              <Text style={styles.switchValueLabel}>{ridingAlong ? 'Yes' : 'No'}</Text>
+              <Switch
+                trackColor={{ false: '#767577', true: '#4a80f5' }}
+                thumbColor={ridingAlong ? '#ffffff' : '#f4f3f4'}
+                ios_backgroundColor="#767577"
+                onValueChange={setRidingAlong}
+                value={ridingAlong}
+                style={styles.switch}
+              />
+            </View>
           </View>
           
           <TouchableOpacity
@@ -188,38 +190,30 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontStyle: 'italic',
   },
-  radioContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginVertical: 16,
-  },
-  radioOption: {
-    flexDirection: 'row',
+  switchContainer: {
+    marginBottom: 20,
     alignItems: 'center',
-    marginHorizontal: 25,
   },
-  radioCircle: {
-    height: 24,
-    width: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#555',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  radioCircleSelected: {
-    borderColor: '#4a80f5',
-  },
-  radioInnerCircle: {
-    height: 12,
-    width: 12,
-    borderRadius: 6,
-    backgroundColor: '#4a80f5',
-  },
-  radioText: {
+  switchLabel: {
     fontSize: 16,
     color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  switchWithLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  switchValueLabel: {
+    fontSize: 16,
+    color: '#333',
+    marginRight: 16,
+    width: 40,
+    textAlign: 'right',
+  },
+  switch: {
+    transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
   },
   button: {
     width: '100%',
