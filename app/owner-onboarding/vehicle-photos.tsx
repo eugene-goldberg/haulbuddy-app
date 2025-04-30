@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -11,16 +11,15 @@ import {
   Alert
 } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-
-interface PhotoItem {
-  id: string;
-  type: string;
-  uri: string;
-}
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
+import { useOnboarding } from '../../contexts/OnboardingContext';
+import { PhotoItem, validateVehiclePhotos } from '../../utils/validation';
 
 export default function VehiclePhotosScreen() {
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const { user } = useAuth();
+  const { vehiclePhotos, updateVehiclePhotos } = useOnboarding();
+  const [photos, setPhotos] = useState<PhotoItem[]>(vehiclePhotos || []);
 
   const photoTypes = [
     { id: 'front', label: 'Front View', icon: 'car-front' },
@@ -50,6 +49,11 @@ export default function VehiclePhotosScreen() {
     }
   };
 
+  // Update the onboarding context whenever photos change
+  useEffect(() => {
+    updateVehiclePhotos(photos);
+  }, [photos]);
+
   const removePhoto = (id: string) => {
     Alert.alert(
       "Remove Photo",
@@ -75,6 +79,13 @@ export default function VehiclePhotosScreen() {
   };
 
   const handleContinue = () => {
+    // Validate that we have at least 3 photos
+    const validationResult = validateVehiclePhotos(photos);
+    if (!validationResult.isValid) {
+      Alert.alert('More Photos Needed', validationResult.message);
+      return;
+    }
+    
     router.push('/owner-onboarding/pricing');
   };
 

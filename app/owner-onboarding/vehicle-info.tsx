@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,20 +8,48 @@ import {
   ScrollView,
   TextInput,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Alert
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
+import { useOnboarding } from '../../contexts/OnboardingContext';
+import { validateVehicleInfo } from '../../utils/validation';
 
 export default function VehicleInfoScreen() {
-  const [vehicleType, setVehicleType] = useState('');
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
-  const [year, setYear] = useState('');
-  const [licensePlate, setLicensePlate] = useState('');
-  const [selectedCapacity, setSelectedCapacity] = useState('');
+  const { user } = useAuth();
+  const { vehicleInfo, updateVehicleInfo } = useOnboarding();
+
+  // Initialize state with data from context if available
+  const [vehicleType, setVehicleType] = useState(vehicleInfo?.type || '');
+  const [make, setMake] = useState(vehicleInfo?.make || '');
+  const [model, setModel] = useState(vehicleInfo?.model || '');
+  const [year, setYear] = useState(vehicleInfo?.year || '');
+  const [licensePlate, setLicensePlate] = useState(vehicleInfo?.licensePlate || '');
+  const [selectedCapacity, setSelectedCapacity] = useState(vehicleInfo?.capacity || '');
 
   const handleContinue = () => {
+    // Validate the form
+    const data = {
+      type: vehicleType,
+      make,
+      model,
+      year,
+      licensePlate,
+      capacity: selectedCapacity
+    };
+
+    const validationResult = validateVehicleInfo(data);
+    if (!validationResult.isValid) {
+      Alert.alert('Please complete all fields', validationResult.message);
+      return;
+    }
+
+    // Save the data to the onboarding context
+    updateVehicleInfo(data);
+
+    // Navigate to the next screen
     router.push('/owner-onboarding/vehicle-photos');
   };
 
@@ -76,18 +104,18 @@ export default function VehicleInfoScreen() {
               <TouchableOpacity 
                 style={[
                   styles.typeOption, 
-                  vehicleType === 'cargo' && styles.selectedType
+                  vehicleType === 'van' && styles.selectedType
                 ]}
-                onPress={() => setVehicleType('cargo')}
+                onPress={() => setVehicleType('van')}
               >
                 <Ionicons 
                   name="cube" 
                   size={24} 
-                  color={vehicleType === 'cargo' ? '#4a80f5' : '#888'} 
+                  color={vehicleType === 'van' ? '#4a80f5' : '#888'} 
                 />
                 <Text style={[
                   styles.typeText,
-                  vehicleType === 'cargo' && styles.selectedTypeText
+                  vehicleType === 'van' && styles.selectedTypeText
                 ]}>
                   Cargo Van
                 </Text>
@@ -96,18 +124,18 @@ export default function VehicleInfoScreen() {
               <TouchableOpacity 
                 style={[
                   styles.typeOption, 
-                  vehicleType === 'box' && styles.selectedType
+                  vehicleType === 'box truck' && styles.selectedType
                 ]}
-                onPress={() => setVehicleType('box')}
+                onPress={() => setVehicleType('box truck')}
               >
                 <Ionicons 
                   name="cube-outline" 
                   size={24} 
-                  color={vehicleType === 'box' ? '#4a80f5' : '#888'} 
+                  color={vehicleType === 'box truck' ? '#4a80f5' : '#888'} 
                 />
                 <Text style={[
                   styles.typeText,
-                  vehicleType === 'box' && styles.selectedTypeText
+                  vehicleType === 'box truck' && styles.selectedTypeText
                 ]}>
                   Box Truck
                 </Text>

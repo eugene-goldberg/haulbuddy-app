@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -9,16 +9,25 @@ import {
   TextInput,
   Switch,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Alert
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
+import { useOnboarding } from '../../contexts/OnboardingContext';
+import { validateVehiclePricing } from '../../utils/validation';
+import { calculatePotentialEarnings } from '../../services/owner-onboarding-service';
 
 export default function PricingScreen() {
-  const [hourlyRate, setHourlyRate] = useState('45');
-  const [offerAssistance, setOfferAssistance] = useState(false);
-  const [assistanceRate, setAssistanceRate] = useState('15');
-  const [availableDays, setAvailableDays] = useState({
+  const { user } = useAuth();
+  const { vehiclePricing, updateVehiclePricing } = useOnboarding();
+
+  // Initialize state with data from context if available
+  const [hourlyRate, setHourlyRate] = useState(vehiclePricing?.hourlyRate || '45');
+  const [offerAssistance, setOfferAssistance] = useState(vehiclePricing?.offerAssistance || false);
+  const [assistanceRate, setAssistanceRate] = useState(vehiclePricing?.assistanceRate || '15');
+  const [availableDays, setAvailableDays] = useState(vehiclePricing?.availableDays || {
     monday: false,
     tuesday: false,
     wednesday: false,
@@ -27,7 +36,7 @@ export default function PricingScreen() {
     saturday: true,
     sunday: true,
   });
-  const [availableTimeSlots, setAvailableTimeSlots] = useState({
+  const [availableTimeSlots, setAvailableTimeSlots] = useState(vehiclePricing?.availableTimeSlots || {
     morning: true,
     afternoon: true,
     evening: false,
@@ -48,9 +57,35 @@ export default function PricingScreen() {
     }));
   };
 
+  // Update the pricing data in the context when any field changes
+  useEffect(() => {
+    const pricingData = {
+      hourlyRate,
+      offerAssistance,
+      assistanceRate,
+      availableDays,
+      availableTimeSlots
+    };
+    updateVehiclePricing(pricingData);
+  }, [hourlyRate, offerAssistance, assistanceRate, availableDays, availableTimeSlots]);
+
   const handleContinue = () => {
-    // In a real app, this would submit the data and proceed
-    // For now, navigate to a confirmation page
+    // Validate the pricing data
+    const pricingData = {
+      hourlyRate,
+      offerAssistance,
+      assistanceRate,
+      availableDays,
+      availableTimeSlots
+    };
+
+    const validationResult = validateVehiclePricing(pricingData);
+    if (!validationResult.isValid) {
+      Alert.alert('Please complete all fields', validationResult.message);
+      return;
+    }
+
+    // Navigate to confirmation screen
     router.push('/owner-onboarding/confirmation');
   };
 
@@ -58,21 +93,16 @@ export default function PricingScreen() {
     router.back();
   };
 
-  const calculatePotentialEarnings = () => {
-    const hourlyRateNum = parseInt(hourlyRate) || 0;
-    const assistanceRateNum = parseInt(assistanceRate) || 0;
-    const averageTripsPerWeek = 3; // Assumed value
-    const averageHoursPerTrip = 2; // Assumed value
-    
-    // Calculate based on availability
-    const daysAvailable = Object.values(availableDays).filter(Boolean).length;
-    const daysMultiplier = daysAvailable / 7;
-    
-    const baseEarnings = hourlyRateNum * averageHoursPerTrip * averageTripsPerWeek;
-    const assistanceEarnings = offerAssistance ? assistanceRateNum * averageHoursPerTrip * averageTripsPerWeek : 0;
-    const totalPotential = (baseEarnings + assistanceEarnings) * daysMultiplier;
-    
-    return `$${Math.round(totalPotential)} - $${Math.round(totalPotential * 1.5)}`;
+  const estimatedEarnings = () => {
+    const pricingData = {
+      hourlyRate,
+      offerAssistance,
+      assistanceRate,
+      availableDays,
+      availableTimeSlots
+    };
+    const earnings = calculatePotentialEarnings(pricingData);
+    return `$${earnings.min} - $${earnings.max}`;
   };
 
   return (
@@ -148,7 +178,7 @@ export default function PricingScreen() {
             
             <View style={styles.earningsContainer}>
               <Text style={styles.earningsLabel}>Potential Weekly Earnings</Text>
-              <Text style={styles.earningsAmount}>{calculatePotentialEarnings()}</Text>
+              <Text style={styles.earningsAmount}>{estimatedEarnings()}</Text>
               <Text style={styles.earningsSubtext}>Based on your availability and rates</Text>
             </View>
           </View>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -6,19 +6,77 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   ScrollView,
-  Platform
+  Platform,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
+import { useOnboarding } from '../../contexts/OnboardingContext';
+import { completeOwnerOnboarding } from '../../services/owner-onboarding-service';
 
 export default function ConfirmationScreen() {
+  const { user, refreshUserRole } = useAuth();
+  const { vehicleInfo, vehiclePhotos, vehiclePricing, resetOnboarding } = useOnboarding();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmitOnboarding = async () => {
+    if (!user || !vehicleInfo || !vehiclePricing || vehiclePhotos.length < 3) {
+      Alert.alert(
+        "Missing Information",
+        "Please complete all previous steps before submitting."
+      );
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Submit onboarding data to Firestore
+      await completeOwnerOnboarding(user.uid, {
+        vehicleInfo,
+        photos: vehiclePhotos,
+        pricing: vehiclePricing
+      });
+
+      // Refresh the user role to reflect the completed onboarding
+      await refreshUserRole();
+
+      // Reset the onboarding context
+      resetOnboarding();
+
+      // Show success message
+      Alert.alert(
+        "Onboarding Complete",
+        "Your truck has been registered successfully. You'll be notified when your account is approved.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Navigate to the dashboard
+              router.push('/owner-dashboard');
+            }
+          }
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        `Failed to complete onboarding: ${error.message || 'Unknown error'}`
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleGoToProfile = () => {
-    // In a real app, navigate to the driver profile
+    // Navigate to the profile or main tabs
     router.push('/(tabs)');
   };
 
   const handleGoToDashboard = () => {
-    // In a real app, navigate to the driver dashboard
+    // Navigate to the owner dashboard
     router.push('/owner-dashboard');
   };
 
@@ -30,9 +88,9 @@ export default function ConfirmationScreen() {
             <Ionicons name="checkmark" size={80} color="white" />
           </View>
           
-          <Text style={styles.title}>Registration Successful!</Text>
+          <Text style={styles.title}>Ready to Submit!</Text>
           <Text style={styles.subtitle}>
-            Your truck has been registered with HaulBuddy
+            Your truck information is ready to be registered with HaulBuddy
           </Text>
         </View>
 
@@ -40,9 +98,9 @@ export default function ConfirmationScreen() {
           <View style={styles.infoItem}>
             <MaterialIcons name="verified" size={24} color="#4CAF50" />
             <View style={styles.infoTextContainer}>
-              <Text style={styles.infoTitle}>Verification In Progress</Text>
+              <Text style={styles.infoTitle}>Verification Process</Text>
               <Text style={styles.infoDescription}>
-                We're reviewing your information. This usually takes 1-2 business days.
+                After submission, our team will review your information within 1-2 business days.
               </Text>
             </View>
           </View>
@@ -69,14 +127,14 @@ export default function ConfirmationScreen() {
         </View>
 
         <View style={styles.nextStepsContainer}>
-          <Text style={styles.nextStepsTitle}>What's Next?</Text>
+          <Text style={styles.nextStepsTitle}>What Happens Next?</Text>
           
           <View style={styles.step}>
             <View style={styles.stepNumberContainer}>
               <Text style={styles.stepNumber}>1</Text>
             </View>
             <Text style={styles.stepText}>
-              Complete any additional verification steps if requested by our team
+              We'll verify your account information and vehicle details
             </Text>
           </View>
           
@@ -115,16 +173,22 @@ export default function ConfirmationScreen() {
         <View style={styles.buttonsContainer}>
           <TouchableOpacity 
             style={styles.primaryButton}
-            onPress={handleGoToDashboard}
+            onPress={handleSubmitOnboarding}
+            disabled={isSubmitting}
           >
-            <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+            {isSubmitting ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Submit Registration</Text>
+            )}
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={styles.secondaryButton}
             onPress={handleGoToProfile}
+            disabled={isSubmitting}
           >
-            <Text style={styles.secondaryButtonText}>View Profile</Text>
+            <Text style={styles.secondaryButtonText}>Back to Home</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

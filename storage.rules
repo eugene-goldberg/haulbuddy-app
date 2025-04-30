@@ -1,12 +1,49 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Default: deny all access
     match /{allPaths=**} {
       allow read, write: if false;
+    }
+    
+    // Vehicle photos
+    match /vehicle-photos/{photoId} {
+      // Vehicle photos can be read by any authenticated user
+      allow read: if isAuthenticated();
+      
+      // Only the vehicle owner or admin can upload photos
+      allow create: if isAuthenticated() && 
+        (
+          // Extract the vehicleId from the filename pattern: vehicleId_photoType_timestamp.jpg
+          firestore.get(/databases/(default)/documents/vehicles/$(photoId.split('_')[0])).data.ownerId == request.auth.uid ||
+          isAdmin()
+        );
+      
+      allow update, delete: if isAdmin();
+    }
+    
+    // Profile pictures
+    match /profile-photos/{userId} {
+      // Profile photos can be read by any authenticated user
+      allow read: if isAuthenticated();
+      
+      // Users can only upload their own profile picture or admin can upload any
+      allow create, update: if isAuthenticated() && 
+        (request.auth.uid == userId || isAdmin());
+      
+      allow delete: if isAuthenticated() && 
+        (request.auth.uid == userId || isAdmin());
     }
   }
 }
