@@ -77,6 +77,15 @@ export default function Choice1Screen5() {
     router.push('/choice1/tracking');
   };
 
+  // Navigate to dashboard after 3 seconds
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      router.push('/choice1/customer-dashboard');
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -200,9 +209,9 @@ export default function Choice1Screen5() {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.homeButton}
-          onPress={() => router.push('/')}
+          onPress={() => router.push('/choice1/customer-dashboard')}
         >
-          <Text style={styles.homeButtonText}>Return to Home</Text>
+          <Text style={styles.homeButtonText}>Go to Dashboard</Text>
         </TouchableOpacity>
       </View>
     </View>
