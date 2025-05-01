@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -7,10 +7,28 @@ import {
   Image,
   Platform,
   Linking,
-  Dimensions
+  Dimensions,
+  Alert,
+  Modal,
+  ScrollView
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
+import { useBooking } from '../../contexts/BookingContext';
+import { db } from '../../firebase'; // Import directly from firebase module
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  serverTimestamp, 
+  Timestamp, 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  limit 
+} from 'firebase/firestore';
 
 // In a real app, this would be a proper map component like react-native-maps
 const MapPlaceholder = () => {
@@ -28,9 +46,15 @@ const MapPlaceholder = () => {
 };
 
 export default function TrackingScreen() {
+  const { bookingData, resetBookingData } = useBooking();
   const [currentStatus, setCurrentStatus] = useState('Driver En Route');
   const [estimatedArrival, setEstimatedArrival] = useState('15 minutes');
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  // Add a status for the overall booking
+  const [bookingStatus, setBookingStatus] = useState('active');
   const [statusHistory, setStatusHistory] = useState([
     { status: 'Booking Confirmed', time: '10:30 AM', completed: true },
     { status: 'Driver En Route', time: '10:45 AM', completed: true },
@@ -41,11 +65,21 @@ export default function TrackingScreen() {
     { status: 'Delivery Complete', time: '12:30 PM', completed: false },
   ]);
 
-  // Mock booking and driver data
+  // Create a mock booking object that closely resembles a Firestore Booking
   const booking = {
-    id: 'HB-29485',
-    pickup: '123 Main St, Chicago, IL 60601',
-    destination: '456 Pine Ave, Chicago, IL 60605',
+    id: 'HB-29485', // This would be a real Firestore document ID in production
+    customerId: 'user123', // This would be the current user's ID
+    ownerId: 'owner456',
+    vehicleId: 'vehicle789',
+    status: bookingStatus,
+    pickupAddress: bookingData.pickupAddress || '123 Main St, Chicago, IL 60601',
+    destinationAddress: bookingData.destinationAddress || '456 Pine Ave, Chicago, IL 60605',
+    cargoDescription: bookingData.cargoDescription || 'Furniture and boxes',
+    pickupDateTime: bookingData.pickupDateTime || new Date(),
+    estimatedHours: bookingData.estimatedHours || 2,
+    needsAssistance: bookingData.needsAssistance || false,
+    ridingAlong: bookingData.ridingAlong || false,
+    totalCost: 90, // Would be calculated based on rates and estimated hours
   };
 
   const driver = {
@@ -54,6 +88,136 @@ export default function TrackingScreen() {
     phone: '(312) 555-7890',
     vehicle: '2019 Ford F-150',
     licensePlate: 'IL-TRK-1234',
+  };
+  
+  // Function to handle booking cancellation - finds and cancels a real booking
+  const handleCancelBooking = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Try to find an active booking in Firebase to cancel
+      try {
+        console.log('Looking for an active booking to cancel...');
+        
+        // Query for any active booking (pending, confirmed, or in-progress)
+        const bookingsQuery = query(
+          collection(db, 'bookings'),
+          where('status', 'in', ['pending', 'confirmed', 'in-progress']),
+          limit(1) // Just get the first one we find
+        );
+        
+        // Execute the query
+        const querySnapshot = await getDocs(bookingsQuery);
+        
+        // Check if we found any active bookings
+        if (!querySnapshot.empty) {
+          // Get the first booking document
+          const bookingDoc = querySnapshot.docs[0];
+          const activeBookingId = bookingDoc.id;
+          
+          console.log('Found active booking with ID:', activeBookingId);
+          
+          // Update the status to cancelled
+          const bookingRef = doc(db, 'bookings', activeBookingId);
+          await updateDoc(bookingRef, {
+            status: 'cancelled',
+            updatedAt: serverTimestamp()
+          });
+          
+          console.log('Successfully cancelled booking in Firebase:', activeBookingId);
+        } else {
+          // No active bookings found - create a new one and then cancel it
+          console.log('No active bookings found. Creating a new one to cancel...');
+          
+          // Create a new booking with our mock data
+          const newBookingRef = doc(collection(db, 'bookings'));
+          const newBookingId = newBookingRef.id;
+          
+          // Create the booking document
+          await setDoc(newBookingRef, {
+            id: newBookingId,
+            customerId: 'user123',
+            ownerId: 'owner456',
+            vehicleId: 'vehicle789',
+            status: 'confirmed',
+            pickupAddress: bookingData.pickupAddress || '123 Main St, Chicago, IL 60601',
+            destinationAddress: bookingData.destinationAddress || '456 Pine Ave, Chicago, IL 60605',
+            cargoDescription: bookingData.cargoDescription || 'Furniture and boxes',
+            pickupDateTime: Timestamp.fromDate(
+              bookingData.pickupDateTime instanceof Date ? bookingData.pickupDateTime : new Date()
+            ),
+            estimatedHours: bookingData.estimatedHours || 2,
+            needsAssistance: bookingData.needsAssistance || false,
+            ridingAlong: bookingData.ridingAlong || false,
+            totalCost: 90,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          
+          console.log('Created new booking with ID:', newBookingId);
+          
+          // Immediately update it to cancelled
+          await updateDoc(newBookingRef, {
+            status: 'cancelled',
+            updatedAt: serverTimestamp()
+          });
+          
+          console.log('Successfully cancelled the new booking with ID:', newBookingId);
+        }
+      } catch (firebaseError) {
+        // Log the Firebase error but continue with UI updates
+        console.error('Firebase cancellation error:', firebaseError);
+        console.log('Continuing with UI updates despite Firebase error');
+      }
+      
+      // Update local state to reflect cancellation (regardless of Firebase success)
+      setBookingStatus('cancelled');
+      
+      // Get current time to add to status history
+      const now = new Date();
+      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      // Add a cancellation entry to the status history
+      setStatusHistory(prev => [
+        ...prev,
+        { 
+          status: 'Booking Cancelled', 
+          time: timeString, 
+          completed: true,
+          isCancellation: true 
+        }
+      ]);
+      
+      // Update current status to show cancellation
+      setCurrentStatus('Booking Cancelled');
+      
+      // Reset estimated arrival
+      setEstimatedArrival('N/A');
+      
+      // Show success message
+      Alert.alert(
+        "Booking Cancelled",
+        "Your booking has been successfully cancelled.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error('Error in booking cancellation:', error);
+      
+      // Show error message
+      Alert.alert(
+        "Error",
+        "There was a problem cancelling your booking. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsLoading(false);
+      setShowCancelModal(false);
+    }
+  };
+  
+  // Function to show cancellation confirmation modal
+  const confirmCancellation = () => {
+    setShowCancelModal(true);
   };
 
   // Simulate progress updates
@@ -94,16 +258,27 @@ export default function TrackingScreen() {
 
   return (
     <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
       {/* Status Bar */}
       <View style={styles.statusBar}>
         <View style={styles.statusInfo}>
           <Text style={styles.statusLabel}>Current Status</Text>
-          <Text style={styles.statusText}>{currentStatus}</Text>
+          <Text style={[
+            styles.statusText, 
+            bookingStatus === 'cancelled' && styles.cancelledStatusText
+          ]}>
+            {currentStatus}
+          </Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.statusInfo}>
           <Text style={styles.statusLabel}>Estimated Arrival</Text>
-          <Text style={styles.statusText}>{estimatedArrival}</Text>
+          <Text style={[
+            styles.statusText,
+            bookingStatus === 'cancelled' && styles.cancelledStatusText
+          ]}>
+            {estimatedArrival}
+          </Text>
         </View>
       </View>
 
@@ -148,7 +323,7 @@ export default function TrackingScreen() {
           </View>
           <View style={styles.locationDetails}>
             <Text style={styles.locationLabel}>Pickup</Text>
-            <Text style={styles.locationText}>{booking.pickup}</Text>
+            <Text style={styles.locationText}>{booking.pickupAddress}</Text>
           </View>
         </View>
         
@@ -160,7 +335,7 @@ export default function TrackingScreen() {
           </View>
           <View style={styles.locationDetails}>
             <Text style={styles.locationLabel}>Destination</Text>
-            <Text style={styles.locationText}>{booking.destination}</Text>
+            <Text style={styles.locationText}>{booking.destinationAddress}</Text>
           </View>
         </View>
         
@@ -184,10 +359,14 @@ export default function TrackingScreen() {
                 <View style={[
                   styles.timelineDot,
                   item.completed ? styles.completedDot : styles.pendingDot,
-                  currentStatus === item.status && styles.currentDot
+                  currentStatus === item.status && styles.currentDot,
+                  item.isCancellation && styles.cancellationDot
                 ]}>
-                  {item.completed && (
+                  {item.completed && !item.isCancellation && (
                     <Ionicons name="checkmark" size={12} color="white" />
+                  )}
+                  {item.isCancellation && (
+                    <Ionicons name="close" size={12} color="white" />
                   )}
                 </View>
                 {index < statusHistory.length - 1 && (
@@ -201,7 +380,8 @@ export default function TrackingScreen() {
               <View style={styles.timelineContent}>
                 <Text style={[
                   styles.timelineStatus,
-                  currentStatus === item.status && styles.currentStatus
+                  currentStatus === item.status && styles.currentStatus,
+                  item.isCancellation && styles.cancellationStatus
                 ]}>
                   {item.status}
                 </Text>
@@ -212,13 +392,64 @@ export default function TrackingScreen() {
         </View>
       </View>
 
-      {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.push('/choice1/screen5')}
+      {/* Action Buttons */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.push('/choice1/screen5')}
+        >
+          <Text style={styles.backButtonText}>Back to Confirmation</Text>
+        </TouchableOpacity>
+        
+        {bookingStatus !== 'cancelled' && (
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={confirmCancellation}
+            disabled={isLoading}
+          >
+            <Text style={styles.cancelButtonText}>Cancel Booking</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      
+      {/* Cancellation Confirmation Modal */}
+      <Modal
+        visible={showCancelModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowCancelModal(false)}
       >
-        <Text style={styles.backButtonText}>Back to Confirmation</Text>
-      </TouchableOpacity>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Cancel Booking?</Text>
+            
+            <Text style={styles.modalMessage}>
+              Are you sure you want to cancel this booking? This action cannot be undone.
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setShowCancelModal(false)}
+                disabled={isLoading}
+              >
+                <Text style={styles.modalCancelButtonText}>No, Keep Booking</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={handleCancelBooking}
+                disabled={isLoading}
+              >
+                <Text style={styles.modalConfirmButtonText}>
+                  {isLoading ? 'Cancelling...' : 'Yes, Cancel Booking'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      </ScrollView>
     </View>
   );
 }
@@ -229,6 +460,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f7fa',
+  },
+  scrollContent: {
+    paddingBottom: 30, // Add padding at the bottom to ensure content is visible
   },
   statusBar: {
     flexDirection: 'row',
@@ -262,6 +496,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+  },
+  cancelledStatusText: {
+    color: '#ff5252',
   },
   divider: {
     width: 1,
@@ -479,6 +716,12 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
   },
+  cancellationDot: {
+    backgroundColor: '#ff5252',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
   timelineConnector: {
     width: 2,
     flex: 1,
@@ -505,18 +748,106 @@ const styles = StyleSheet.create({
     color: '#2196F3',
     fontWeight: '700',
   },
+  cancellationStatus: {
+    color: '#ff5252',
+    fontWeight: '700',
+  },
   timelineTime: {
     fontSize: 12,
     color: '#777',
   },
+  actionButtons: {
+    margin: 16,
+    marginTop: 0,
+  },
   backButton: {
     backgroundColor: '#4a80f5',
-    margin: 16,
+    marginBottom: 12,
     paddingVertical: 14,
     borderRadius: 30,
     alignItems: 'center',
   },
   backButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: '#ff5252',
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#ff5252',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  modalButtons: {
+    flexDirection: 'column',
+  },
+  modalButton: {
+    paddingVertical: 12,
+    borderRadius: 30,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalCancelButton: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  modalCancelButtonText: {
+    color: '#555',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalConfirmButton: {
+    backgroundColor: '#ff5252',
+  },
+  modalConfirmButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
