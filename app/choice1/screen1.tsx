@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Switch, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useBooking } from '../../contexts/BookingContext';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function Choice1Screen1() {
   const { bookingData, updateBookingData } = useBooking();
@@ -55,6 +56,68 @@ export default function Choice1Screen1() {
   const [needsAssistance, setNeedsAssistance] = useState(bookingData.needsAssistance || false);
   const [ridingAlong, setRidingAlong] = useState(bookingData.ridingAlong || false);
   
+  // Native datetime picker states - using natural initialization
+  const [nativeDatetime, setNativeDatetime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  
+  // Format the native picker's date for display
+  const formattedNativeDate = nativeDatetime.toLocaleDateString('en-US');
+  const formattedNativeTime = nativeDatetime.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
+  
+  // Native date/time picker handlers with text input syncing
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(Platform.OS === 'ios'); // Only hide on Android
+    
+    if (selectedDate) {
+      // Preserve the current time
+      const currentTime = nativeDatetime;
+      selectedDate.setHours(currentTime.getHours());
+      selectedDate.setMinutes(currentTime.getMinutes());
+      
+      // Update the native picker state
+      setNativeDatetime(selectedDate);
+      console.log('Native date selected:', selectedDate.toISOString());
+      
+      // SYNC: Also update the text input for date
+      const month = selectedDate.getMonth() + 1;
+      const day = selectedDate.getDate();
+      const year = selectedDate.getFullYear();
+      const formattedDate = `${month}/${day}/${year}`;
+      setPickupDate(formattedDate);
+      console.log('Synced text date to:', formattedDate);
+    }
+  };
+  
+  const onTimeChange = (event, selectedTime) => {
+    setShowTimePicker(Platform.OS === 'ios'); // Only hide on Android
+    
+    if (selectedTime) {
+      // Preserve the current date
+      const currentDate = nativeDatetime;
+      selectedTime.setFullYear(currentDate.getFullYear());
+      selectedTime.setMonth(currentDate.getMonth());
+      selectedTime.setDate(currentDate.getDate());
+      
+      // Update the native picker state
+      setNativeDatetime(selectedTime);
+      console.log('Native time selected:', selectedTime.toISOString());
+      
+      // SYNC: Also update the text input for time
+      const formattedTime = selectedTime.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true
+      });
+      setPickupTime(formattedTime);
+      console.log('Synced text time to:', formattedTime);
+    }
+  };
+  
   // Create a proper Date object from separate date and time inputs
   const createPickupDateTimeObject = () => {
     if (!pickupDate || !pickupTime) return new Date();
@@ -86,7 +149,7 @@ export default function Choice1Screen1() {
     }
   };
   
-  // Even simpler time adjustment approach using direct time management
+  // Time adjustment approach using direct time management with sync to native picker
   const adjustTime = (minutes) => {
     // Store current time values for reference
     const currentTime = new Date();
@@ -158,26 +221,54 @@ export default function Choice1Screen1() {
     
     console.log(`Adjusted time: ${newTime}`);
     setPickupTime(newTime);
+    
+    // SYNC: Also update the native datetime picker
+    const newNativeDateTime = new Date(nativeDatetime);
+    newNativeDateTime.setHours(timeHours);
+    newNativeDateTime.setMinutes(timeMinutes);
+    setNativeDatetime(newNativeDateTime);
+    console.log('Synced native datetime picker to:', newNativeDateTime.toISOString());
   };
   
-  // Initialize date and time from context if available, or use current date+time if not
+  // Initialize from context only if there's existing data
   useEffect(() => {
-    // Always use current date, ignore any stale data that might be in context
-    const now = new Date();
-    const month = now.getMonth() + 1; // getMonth() is 0-indexed
-    const day = now.getDate();
-    const year = now.getFullYear();
-    const todayFormatted = `${month}/${day}/${year}`;
-    
-    console.log('Setting date to today:', todayFormatted);
-    setPickupDate(todayFormatted);
-    
+    // If we have existing booking data, use it
     if (bookingData.pickupDateTime) {
-      const date = new Date(bookingData.pickupDateTime);
-      setPickupTime(date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+      // Set the native picker to the existing value
+      const existingDateTime = new Date(bookingData.pickupDateTime);
+      setNativeDatetime(existingDateTime);
+      
+      // Also set the text inputs for consistency
+      const month = existingDateTime.getMonth() + 1;
+      const day = existingDateTime.getDate();
+      const year = existingDateTime.getFullYear();
+      const formattedDate = `${month}/${day}/${year}`;
+      
+      const formattedTime = existingDateTime.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      
+      console.log('Using existing booking date/time:', formattedDate, formattedTime);
+      setPickupDate(formattedDate);
+      setPickupTime(formattedTime);
     } else {
-      // Calculate time (current + 15min)
-      const { formattedTime } = getFormattedDateAndTime();
+      // For new bookings, use the native picker's natural date/time
+      // and sync it to text inputs
+      const current = new Date();
+      
+      const month = current.getMonth() + 1;
+      const day = current.getDate();
+      const year = current.getFullYear();
+      const formattedDate = `${month}/${day}/${year}`;
+      
+      const formattedTime = current.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      
+      console.log('Setting new booking with current date/time:', formattedDate, formattedTime);
+      setPickupDate(formattedDate);
       setPickupTime(formattedTime);
     }
   }, []);
@@ -214,7 +305,7 @@ export default function Choice1Screen1() {
           
           <Text style={styles.formLabel}>Enter the desired date and time of the pick up</Text>
           
-          {/* Date and Time inputs with separate fields */}
+          {/* Original Date and Time inputs - commented out in favor of native controls
           <View style={styles.dateTimeContainer}>
             <View style={styles.dateInputContainer}>
               <Text style={styles.dateTimeLabel}>Date:</Text>
@@ -255,10 +346,66 @@ export default function Choice1Screen1() {
             </View>
           </View>
           
-          {/* Helper text for date/time format */}
           <Text style={styles.helperText}>
             Please enter date as MM/DD/YYYY and time as HH:MM AM/PM
           </Text>
+          */}
+          
+          {/* Native DateTime Picker Section */}
+          <View style={styles.nativeDateTimeSection}>
+            <Text style={styles.sectionTitle}>Date and Time Selection</Text>
+            
+            <View style={styles.nativeDateTimeRow}>
+              <View style={styles.nativeDateTimeDisplay}>
+                <Text style={styles.dateTimeLabel}>Selected Date:</Text>
+                <Text style={styles.dateTimeValue}>{formattedNativeDate}</Text>
+                <TouchableOpacity 
+                  style={styles.dateTimeButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={styles.dateTimeButtonText}>Change Date</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.nativeDateTimeDisplay}>
+                <Text style={styles.dateTimeLabel}>Selected Time:</Text>
+                <Text style={styles.dateTimeValue}>{formattedNativeTime}</Text>
+                <TouchableOpacity 
+                  style={styles.dateTimeButton}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Text style={styles.dateTimeButtonText}>Change Time</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            {/* Native pickers (shown conditionally) */}
+            {showDatePicker && (
+              <DateTimePicker
+                testID="datePicker"
+                value={nativeDatetime}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onDateChange}
+                minimumDate={new Date()}
+              />
+            )}
+            
+            {showTimePicker && (
+              <DateTimePicker
+                testID="timePicker"
+                value={nativeDatetime}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onTimeChange}
+                minuteInterval={15}
+              />
+            )}
+            
+            <Text style={styles.helperText}>
+              Select your pickup date and time using the controls above
+            </Text>
+          </View>
           
           <View style={styles.switchContainer}>
             <Text style={styles.switchLabel}>Will you require assistance with loading / unloading?</Text>
@@ -293,18 +440,21 @@ export default function Choice1Screen1() {
           <TouchableOpacity
             style={styles.button}
             onPress={() => {
-              // Create properly formatted pickup date/time object
-              const pickupDateTimeObj = createPickupDateTimeObject();
+              // Use the native datetime picker value
+              const pickupDateTimeObj = nativeDatetime;
               
-              console.log('Saving pickup date:', pickupDateTimeObj.toISOString());
-              console.log('From date:', pickupDate, 'and time:', pickupTime);
+              console.log('Using native picker datetime:', pickupDateTimeObj.toISOString());
+              
+              // Also update the text inputs for consistency (optional)
+              setPickupDate(formattedNativeDate);
+              setPickupTime(formattedNativeTime);
               
               // Save form data to the context before navigating
               updateBookingData({
                 cargoDescription,
                 pickupAddress,
                 destinationAddress,
-                pickupDateTime: pickupDateTimeObj,
+                pickupDateTime: pickupDateTimeObj, // using native picker value
                 needsAssistance,
                 ridingAlong,
                 estimatedHours: 2 // Default value
@@ -466,5 +616,49 @@ const styles = StyleSheet.create({
     color: '#4a80f5',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // Native date time picker styles
+  nativeDateTimeSection: {
+    marginVertical: 20,
+    padding: 15,
+    backgroundColor: '#f5f8ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d0d0d0',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  nativeDateTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  nativeDateTimeDisplay: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 10,
+  },
+  dateTimeValue: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: 'bold',
+    marginVertical: 8,
+  },
+  dateTimeButton: {
+    backgroundColor: '#4a80f5',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 5,
+  },
+  dateTimeButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
